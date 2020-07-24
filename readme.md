@@ -1,4 +1,4 @@
-Simple script to generate a Markov Chain from a text file and generate a. For simplicity punctuation will be stripped from the input and output.
+Simple script to generate a Markov Chain from a text file and generate a randomly sampled output. For simplicity punctuation will be stripped from the input and output.
 
 ## Usage
 python3 chain.py --file='gameofthrones.txt' --start='The' --count=50
