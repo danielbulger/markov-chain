@@ -4,4 +4,4 @@ Simple script to generate a Markov Chain from a text file and generate a randoml
 python3 chain.py --file='gameofthrones.txt' --start='The' --count=50
 
 ## Example Output
- "the free grasping fingers off as the tyrells far this bloody fathers gods of the first time the meat and evil bitch knows the water shouldnt kiss will be it the light now you are expensive if we make all your time to his voice who are in the riverbank"
+the faint far-off horn off the right out never know nothing illyrio told her yet i bet her choices there is no man has that way to scream in renlys name child into her custom did not know i knew but got his throat hed warned me lord through the

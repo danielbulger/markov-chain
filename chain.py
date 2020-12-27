@@ -1,27 +1,10 @@
-import random
 from argparse import ArgumentParser
+from typing import List, Tuple, Dict
+
+import numpy as np
 
 
-class State:
-
-    def __init__(self, token):
-        self.token = token
-        self.total = 0
-        self.transitions = {}
-
-    def has_transition(self, transition):
-        return transition in self.transitions
-
-    def add_transition(self, transition):
-        self.transitions[transition] = 0
-
-    def add_transition_count(self, transition):
-        self.transitions[transition] += 1
-        self.total += 1
-
-
-def get_count_table(file):
-    count_table = {}
+def get_content(file: str) -> Tuple[List[str], List[str], dict]:
     with open(file) as data_file:
         content = data_file.read().lower()
 
@@ -29,52 +12,30 @@ def get_count_table(file):
         content = content.translate(str.maketrans(' ', ' ', r"""!"#$%&'()*+,./:;<=>?@[\]^_`{|}~—’‘”“"""))
 
         # Some file specific normalisation
-        tokens = content.replace('\n\n', ' ').replace('...', '').replace('…', '').split(' ')
+        content = content.replace('\n\n', ' ').replace('\n', ' ').replace('...', '').replace('…', '').split(' ')
 
-        for index, token in enumerate(tokens[:-1]):
+        words = list(set(content))
 
-            token = token.rstrip()
+        word_index = {token: index for index, token in enumerate(words)}
 
-            if token not in count_table:
-                count_table[token] = State(token)
-
-            next_token = tokens[index + 1]
-
-            if not count_table[token].has_transition(next_token):
-                count_table[token].add_transition(next_token)
-
-            count_table[token].add_transition_count(next_token)
-
-    return count_table
+        return content, words, word_index
 
 
-def get_transition_table(file):
-    transition_table = {}
+def get_transition_matrix(content: List[str], word_index: Dict[str, int]) -> np.ndarray:
+    matrix = np.zeros((len(word_index), len(word_index)))
 
-    count_table = get_count_table(file)
+    # Work out the transitioning counts for each token
+    for index, word in enumerate(content[:-1]):
+        matrix[word_index[word], word_index[content[index + 1]]] += 1
 
-    for key, state in count_table.items():
-        transition_table[key] = {}
+    # Convert to probabilities
+    for index, row in enumerate(matrix):
+        matrix[index] = row / row.sum()
 
-        for token, count in state.transitions.items():
-            # Assign probability between 0-1
-            transition_table[key][token] = count / state.total
-
-    return transition_table
-
-
-def get_random_transition(transitions):
-    x = random.random()
-
-    for token, weight in transitions.items():
-        if x <= weight:
-            return token
-        x -= weight
-
-    raise Exception('Was not able to get random transition')
+    return matrix
 
 
-def get_args():
+def parse_args():
     parser = ArgumentParser()
 
     parser.add_argument('--file', type=str, help='The text file to read')
@@ -84,18 +45,46 @@ def get_args():
     return parser.parse_args()
 
 
+def simulate(matrix: np.ndarray, words: List[str], word_index: Dict[str, int], start: str, count: int) -> str:
+    output = [''] * count
+
+    output[0] = start
+
+    index = word_index[start]
+
+    index_range = np.arange(matrix[0].size)
+
+    # Start at 1 since we already have the starting word.
+    for i in range(1, count):
+        probabilities = matrix[index]
+
+        # Take a random number in the range 0-size so we can get the
+        # index for the transition matrix.
+        index = np.random.choice(
+            index_range,
+            p=probabilities,
+            replace=False
+        )
+
+        output[i] = words[index]
+
+    return ' '.join(output)
+
+
 def main():
-    args = get_args()
-    transition_table = get_transition_table(args.file)
+    args = parse_args()
 
-    output = []
+    start = args.start.lower()
 
-    current = args.start.lower()
-    for x in range(args.count):
-        output.append(current)
-        current = get_random_transition(transition_table[current])
+    content, words, words_index = get_content(args.file)
 
-    print(' '.join(output))
+    if start not in words:
+        print(f'Unable to start on {start}')
+        exit(1)
+
+    matrix = get_transition_matrix(content, words_index)
+
+    print(simulate(matrix, words, words_index, start, args.count))
 
 
 if __name__ == '__main__':
